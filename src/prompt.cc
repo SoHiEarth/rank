@@ -8,12 +8,11 @@
 #include <map>
 #include <string>
 #include <algorithm>
-TTF_Font* interface_font = nullptr;
-SDL_Point mouse_position = {0, 0};
+bool prompt_close_requested = false;
 template <typename T>
 void CheckError(T* ptr, std::string message) {
   if (ptr == nullptr) {
-    SDL_Log("%s: %s", message.c_str(), SDL_GetError());
+    SDL_Log("CheckError: %s: %s", message.c_str(), SDL_GetError());
     exit(1);
   }
 }
@@ -79,14 +78,20 @@ void RenderTable(SDL_Renderer* renderer, std::string table_title, std::map<std::
   SDL_FreeSurface(title_surface);
   SDL_DestroyTexture(title_texture);
 
-  int y_offset = title_rect.y + title_rect.h + 10;
+  int y_offset = title_rect.y + title_rect.h + 50;
+  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
+  SDL_RenderDrawLine(renderer,
+      50, title_rect.y + title_rect.h + (y_offset - (title_rect.y + title_rect.h)) / 2,
+      750, title_rect.y + title_rect.h + (y_offset - (title_rect.y + title_rect.h)) / 2);
+
   for (auto& [label, value] : table) {
     TTF_SetFontStyle(interface_font, 1);
     SDL_Surface *label_surface = TTF_RenderUTF8_Blended(interface_font, label.c_str(), {0, 0, 0, 200});
     CheckError(label_surface, "Failed to render label surface");
     SDL_Texture *label_texture = SDL_CreateTextureFromSurface(renderer, label_surface);
     CheckError(label_texture, "Failed to create label texture");
-    SDL_Rect label_rect = {50, y_offset, label_surface->w, label_surface->h};
+    SDL_Rect label_rect = {80, y_offset, label_surface->w, label_surface->h};
     SDL_RenderCopy(renderer, label_texture, nullptr, &label_rect);
     SDL_FreeSurface(label_surface);
     SDL_DestroyTexture(label_texture);
@@ -130,20 +135,16 @@ void CreatePromptWindow() {
       -1,
       SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
   );
-  interface_font = TTF_OpenFont("NotoSansJP-Regular.ttf", 24);
 }
 
-bool prompt_close_requested = false;
-Entry PromptNewEntry() {
-  if (prompt_window == nullptr || prompt_renderer == nullptr) {
-    CreatePromptWindow();
-  }
-
-  Entry entry;
+Entry* PromptNewEntry() {
+  SDL_Log("PromptNewEntry");
+  CreatePromptWindow();
+  Entry* entry = new Entry();
   std::map<std::string, std::string*> table = {
-    {"名前", &entry.name},
+    {"名前", &entry->name},
   };
-
+  prompt_close_requested = false;
   while (!prompt_close_requested) {
     while (SDL_PollEvent(&event)) {
       switch (event.type) {
@@ -161,9 +162,30 @@ Entry PromptNewEntry() {
     );
     SDL_RenderClear(prompt_renderer);
     RenderTable(prompt_renderer, "データを入力", table);
+
+    SDL_Surface* submit_surface = TTF_RenderUTF8_Blended(interface_font, "送信", {0, 0, 0, 255});
+    CheckError(submit_surface, "Failed to render submit surface");
+    SDL_Texture* submit_texture = SDL_CreateTextureFromSurface(prompt_renderer, submit_surface);
+    CheckError(submit_texture, "Failed to create submit texture");
+    SDL_Rect submit_rect = {
+      800 - 50 - submit_surface->w,
+      600 - 50 - submit_surface->h,
+      submit_surface->w,
+      submit_surface->h
+    };
+    SDL_RenderCopy(prompt_renderer, submit_texture, nullptr, &submit_rect);
+    SDL_FreeSurface(submit_surface);
+    SDL_DestroyTexture(submit_texture);
+    if (SDL_PointInRect(&mouse_position, &submit_rect)) {
+      SDL_SetRenderDrawBlendMode(prompt_renderer, SDL_BLENDMODE_BLEND);
+      SDL_SetRenderDrawColor(prompt_renderer, 0, 0, 0, 100);
+      SDL_RenderFillRect(prompt_renderer, &submit_rect);
+      if (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_LEFT)) {
+        prompt_close_requested = true;
+      }
+    }
     SDL_RenderPresent(prompt_renderer);
   }
-  TTF_CloseFont(interface_font);
   SDL_DestroyRenderer(prompt_renderer);
   SDL_DestroyWindow(prompt_window);
 
