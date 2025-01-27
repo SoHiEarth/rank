@@ -47,7 +47,7 @@ void RenderEntry(Entry* entry, SDL_Rect anchor) {
   try {
     score_bar_rect = {
       .w = 50,
-      .h = 500 * (std::stoi(entry->score) / 100),
+      .h = std::stoi(entry->score) * 5,
     };
   } catch (...) {
     SDL_SetRenderDrawColor(main_renderer, 50, 50, 50, SDL_ALPHA_OPAQUE);
@@ -56,7 +56,7 @@ void RenderEntry(Entry* entry, SDL_Rect anchor) {
       .h = 0,
     };
   }
-  score_bar_rect.x = anchor.x + static_cast<float>((anchor.w - score_bar_rect.w) * 0.5);
+  score_bar_rect.x = anchor.x + (anchor.w - score_bar_rect.w) / 2;
   score_bar_rect.y = anchor.y + anchor.h - score_bar_rect.h - entry_rect.h - 20;
   SDL_RenderFillRect(main_renderer, &score_bar_rect);
 }

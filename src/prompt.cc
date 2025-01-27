@@ -138,7 +138,8 @@ void CreatePromptWindow() {
 }
 
 Entry* PromptNewEntry() {
-  CreatePromptWindow();
+  if (prompt_window == nullptr && prompt_renderer == nullptr)
+    CreatePromptWindow();
   Entry* entry = new Entry();
   std::map<std::string, std::string*> table = {
     {"名前", &entry->name},
@@ -188,6 +189,8 @@ Entry* PromptNewEntry() {
   }
   SDL_DestroyRenderer(prompt_renderer);
   SDL_DestroyWindow(prompt_window);
+  prompt_renderer = nullptr;
+  prompt_window = nullptr;
 
   return entry;
 }
