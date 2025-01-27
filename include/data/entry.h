@@ -14,7 +14,8 @@ enum EntryColor {
 };
 
 struct Entry {
-  std::string name;
+  std::string name,
+    score;
   EntryColor color;
 };
 

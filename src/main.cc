@@ -7,7 +7,7 @@
 #include <SDL_image.h>
 #include <base.h>
 #include <prompt.h>
-
+#include <data/entry_render.h>
 int main() {
   SDL_Init(SDL_INIT_EVERYTHING);
   TTF_Init();
@@ -70,14 +70,13 @@ int main() {
     if (!entries.empty()) {
       for (int i = 0; i < std::min(top_entries_render_count, (int)entries.size()); i++) {
         entries[i]->name = (entries[i]->name.empty()) ? "名前未設定" : entries[i]->name;
-        SDL_Surface* entry_surface = TTF_RenderUTF8_Blended(interface_font, entries[i]->name.c_str(), {255, 255, 255, 255});
-        CheckError(entry_surface, "Failed to render entry text surface");
-        SDL_Texture* entry_texture = SDL_CreateTextureFromSurface(main_renderer, entry_surface);
-        CheckError(entry_texture, "Failed to create entry text texture");
-        SDL_Rect entry_rect = {10, 50 + i * 50, entry_surface->w, entry_surface->h};
-        SDL_RenderCopy(main_renderer, entry_texture, nullptr, &entry_rect);
-        SDL_FreeSurface(entry_surface);
-        SDL_DestroyTexture(entry_texture);
+        SDL_Rect anchor = {
+          50 + (700/top_entries_render_count) * i,
+          150,
+          700/top_entries_render_count,
+          750 - 150
+        };
+        RenderEntry(entries[i], anchor);
       }
     }
     SDL_RenderPresent(main_renderer);

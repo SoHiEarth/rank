@@ -143,6 +143,7 @@ Entry* PromptNewEntry() {
   Entry* entry = new Entry();
   std::map<std::string, std::string*> table = {
     {"名前", &entry->name},
+    {"スコア", &entry->score}
   };
   prompt_close_requested = false;
   while (!prompt_close_requested) {
