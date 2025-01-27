@@ -3,12 +3,118 @@
 #include <prompt.h>
 #include <data/entry.h>
 #include <SDL.h>
+#include <SDL_ttf.h>
 #include <base.h>
 #include <map>
 #include <string>
+#include <algorithm>
+TTF_Font* interface_font = nullptr;
+SDL_Point mouse_position = {0, 0};
+template <typename T>
+void CheckError(T* ptr, std::string message) {
+  if (ptr == nullptr) {
+    SDL_Log("%s: %s", message.c_str(), SDL_GetError());
+    exit(1);
+  }
+}
+
+void TextInput(std::string* text, SDL_Rect input_rect) {
+  SDL_StartTextInput();
+  bool text_input_done = false;
+  while (!text_input_done) {
+    while (SDL_PollEvent(&event)) {
+      switch (event.type) {
+        case SDL_QUIT:
+          text_input_done = true;
+          break;
+        case SDL_TEXTINPUT:
+          if (*text == "~") {
+            *text = "";
+          }
+          *text += event.text.text;
+          break;
+        case SDL_KEYDOWN:
+          if (event.key.keysym.sym == SDLK_BACKSPACE && text->size() > 0) {
+            text->pop_back();
+            if (text->empty()) {
+              *text = "~";
+            }
+          }
+          break;
+        case SDL_MOUSEMOTION:
+          mouse_position = {event.motion.x, event.motion.y};
+          break;
+        case SDL_MOUSEBUTTONDOWN:
+          if (!SDL_PointInRect(&mouse_position, &input_rect)) {
+            text_input_done = true;
+          }
+          break;
+      }
+    }
+    SDL_SetRenderDrawColor(prompt_renderer, 255, 255, 255, 255);
+    SDL_RenderClear(prompt_renderer);
+    SDL_Surface* text_surface = TTF_RenderUTF8_Blended(interface_font, text->c_str(), {0, 0, 0, 255});
+    CheckError(text_surface, "Failed to render text surface");
+    SDL_Texture* text_texture = SDL_CreateTextureFromSurface(prompt_renderer, text_surface);
+    CheckError(text_texture, "Failed to create text texture");
+    SDL_Rect text_rect = {input_rect.x, input_rect.y, text_surface->w, text_surface->h};
+    SDL_SetRenderDrawColor(prompt_renderer, 0, 0, 0, 255);
+    SDL_RenderDrawRect(prompt_renderer, &input_rect);
+    SDL_RenderCopy(prompt_renderer, text_texture, nullptr, &text_rect);
+    SDL_FreeSurface(text_surface);
+    SDL_DestroyTexture(text_texture);
+    SDL_RenderPresent(prompt_renderer);
+  }
+  SDL_StopTextInput();
+}
+
 void RenderTable(SDL_Renderer* renderer, std::string table_title, std::map<std::string, std::string*> table) {
+  TTF_SetFontStyle(interface_font, 1);
+  SDL_Surface* title_surface = TTF_RenderUTF8_Blended(interface_font, table_title.c_str(), {0, 0, 100, 255});
+  CheckError(title_surface, "Failed to render title surface");
+  SDL_Texture* title_texture = SDL_CreateTextureFromSurface(renderer, title_surface);
+  CheckError(title_texture, "Failed to create title texture");
+  SDL_Rect title_rect = {50, 50, title_surface->w, title_surface->h};
+  SDL_RenderCopy(renderer, title_texture, nullptr, &title_rect);
+  SDL_FreeSurface(title_surface);
+  SDL_DestroyTexture(title_texture);
+
+  int y_offset = title_rect.y + title_rect.h + 10;
   for (auto& [label, value] : table) {
-    // Render label and value
+    TTF_SetFontStyle(interface_font, 1);
+    SDL_Surface *label_surface = TTF_RenderUTF8_Blended(interface_font, label.c_str(), {0, 0, 0, 200});
+    CheckError(label_surface, "Failed to render label surface");
+    SDL_Texture *label_texture = SDL_CreateTextureFromSurface(renderer, label_surface);
+    CheckError(label_texture, "Failed to create label texture");
+    SDL_Rect label_rect = {50, y_offset, label_surface->w, label_surface->h};
+    SDL_RenderCopy(renderer, label_texture, nullptr, &label_rect);
+    SDL_FreeSurface(label_surface);
+    SDL_DestroyTexture(label_texture);
+
+    if (*value == "") {
+      *value = "未入力";
+    }
+    TTF_SetFontStyle(interface_font, 0);
+    SDL_Surface *value_surface = TTF_RenderUTF8_Blended(interface_font, value->c_str(), {0, 0, 0, 255});
+    CheckError(value_surface, "Failed to render value surface");
+    SDL_Texture *value_texture = SDL_CreateTextureFromSurface(renderer, value_surface);
+    CheckError(value_texture, "Failed to create value texture");
+    SDL_Rect value_rect = {std::clamp(label_rect.x + label_rect.w + 10, label_rect.x + 100, 300), y_offset, value_surface->w, value_surface->h},
+      value_rect_bg = {value_rect.x - 5, value_rect.y - 5, value_rect.w + 10, value_rect.h + 10};
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderDrawRect(renderer, &value_rect_bg);
+    SDL_RenderCopy(renderer, value_texture, nullptr, &value_rect);
+    SDL_FreeSurface(value_surface);
+    SDL_DestroyTexture(value_texture);
+    if (SDL_PointInRect(&mouse_position, &value_rect)) {
+      SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+      SDL_SetRenderDrawColor(renderer, 0, 0, 0, 100);
+      SDL_RenderFillRect(renderer, &value_rect_bg);
+      if (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_LEFT)) {
+        TextInput(value, value_rect);
+      }
+    }
+    y_offset += 50;
   }
 }
 
@@ -17,13 +123,14 @@ void CreatePromptWindow() {
       SDL_WINDOWPOS_CENTERED,
       SDL_WINDOWPOS_CENTERED,
       800, 600,
-      SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_GRABBED | SDL_WINDOW_ALWAYS_ON_TOP
+      SDL_WINDOW_SHOWN | SDL_WINDOW_ALWAYS_ON_TOP
   );
   prompt_renderer = SDL_CreateRenderer(
       prompt_window,
       -1,
       SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
   );
+  interface_font = TTF_OpenFont("NotoSansJP-Regular.ttf", 24);
 }
 
 bool prompt_close_requested = false;
@@ -34,7 +141,7 @@ Entry PromptNewEntry() {
 
   Entry entry;
   std::map<std::string, std::string*> table = {
-    {"Name", &entry.name},
+    {"名前", &entry.name},
   };
 
   while (!prompt_close_requested) {
@@ -43,16 +150,20 @@ Entry PromptNewEntry() {
         case SDL_QUIT:
           prompt_close_requested = true;
           break;
+        case SDL_MOUSEMOTION:
+          mouse_position = {event.motion.x, event.motion.y};
+          break;
       }
     }
     SDL_SetRenderDrawColor(
         prompt_renderer,
-        0, 0, 0, SDL_ALPHA_OPAQUE
+        255, 255, 255, SDL_ALPHA_OPAQUE
     );
     SDL_RenderClear(prompt_renderer);
     RenderTable(prompt_renderer, "データを入力", table);
     SDL_RenderPresent(prompt_renderer);
   }
+  TTF_CloseFont(interface_font);
   SDL_DestroyRenderer(prompt_renderer);
   SDL_DestroyWindow(prompt_window);
 

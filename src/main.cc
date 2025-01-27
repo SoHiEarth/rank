@@ -6,6 +6,7 @@
 #include <SDL_ttf.h>
 #include <SDL_image.h>
 #include <base.h>
+#include <prompt.h>
 int main() {
   SDL_Init(SDL_INIT_EVERYTHING);
   TTF_Init();
@@ -29,6 +30,15 @@ int main() {
       switch (event.type) {
         case SDL_QUIT:
           running = false;
+          break;
+        case SDL_KEYDOWN:
+          if (event.key.keysym.sym == SDLK_ESCAPE) {
+            running = false;
+          }
+          if (event.key.keysym.sym == SDLK_RETURN) {
+            PromptNewEntry();
+          }
+          break;
       }
     }
     SDL_SetRenderDrawColor(
