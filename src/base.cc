@@ -5,6 +5,7 @@
 #include <data/entry.h>
 
 SDL_Window* main_window = nullptr;
+std::pair<int, int> window_size = {0, 0};
 SDL_Renderer* main_renderer = nullptr;
 SDL_Event event;
 bool running = false;

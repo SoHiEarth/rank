@@ -19,6 +19,7 @@ int main() {
       1920, 1080,
       SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_SHOWN
   );
+  SDL_GetWindowSize(main_window, &window_size.first, &window_size.second);
   main_renderer = SDL_CreateRenderer(
       main_window,
       -1,
@@ -41,6 +42,9 @@ int main() {
           break;
         case SDL_MOUSEMOTION:
           mouse_position = {event.motion.x, event.motion.y};
+          break;
+        case SDL_WINDOWEVENT_RESIZED:
+          SDL_GetWindowSize(main_window, &window_size.first, &window_size.second);
           break;
       }
     }
@@ -71,10 +75,10 @@ int main() {
       for (int i = 0; i < std::min(top_entries_render_count, (int)entries.size()); i++) {
         entries[i]->name = (entries[i]->name.empty()) ? "名前未設定" : entries[i]->name;
         SDL_Rect anchor = {
-          50 + (700/top_entries_render_count) * i,
+          50 + ((window_size.first - 100)/top_entries_render_count) * i,
           150,
-          700/top_entries_render_count,
-          750 - 150
+          (window_size.first - 100)/top_entries_render_count,
+          window_size.second - 50 - 150
         };
         RenderEntry(entries[i], anchor);
       }

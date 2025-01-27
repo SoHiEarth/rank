@@ -9,12 +9,13 @@ void RenderEntry(Entry* entry, SDL_Rect anchor) {
   CheckError(entry_surface, "Failed to render text surface");
   SDL_Texture* entry_texture = SDL_CreateTextureFromSurface(main_renderer, entry_surface);
   CheckError(entry_texture, "Failed to create text texture");
-  SDL_Rect entry_rect = {
-    anchor.y + anchor.h - entry_surface->h,
+  SDL_Rect entry_rect = { // Centered to the anchor and width
+    anchor.x + (anchor.w - entry_surface->w) / 2,
+    0,
     entry_surface->w,
     entry_surface->h
   };
-  entry_rect.x = anchor.x + ((anchor.w - entry_rect.w) / 2);
+  entry_rect.y = anchor.y + anchor.h - entry_surface->h;
   SDL_RenderCopy(main_renderer, entry_texture, nullptr, &entry_rect);
   SDL_FreeSurface(entry_surface);
   SDL_DestroyTexture(entry_texture);
@@ -42,11 +43,20 @@ void RenderEntry(Entry* entry, SDL_Rect anchor) {
       SDL_SetRenderDrawColor(main_renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
       break;
   }
-  SDL_Rect score_bar_rect = {
-    .w = 50,
-    .h = 500 * std::stoi(entry->score) / 100,
-  };
-  score_bar_rect.x = anchor.x + (anchor.w - score_bar_rect.w) / 2;
-  score_bar_rect.y = anchor.y + anchor.h - score_bar_rect.h;
+  SDL_Rect score_bar_rect;
+  try {
+    score_bar_rect = {
+      .w = 50,
+      .h = 500 * (std::stoi(entry->score) / 100),
+    };
+  } catch (...) {
+    SDL_SetRenderDrawColor(main_renderer, 50, 50, 50, SDL_ALPHA_OPAQUE);
+    score_bar_rect = {
+      .w = 50,
+      .h = 0,
+    };
+  }
+  score_bar_rect.x = anchor.x + static_cast<float>((anchor.w - score_bar_rect.w) * 0.5);
+  score_bar_rect.y = anchor.y + anchor.h - score_bar_rect.h - entry_rect.h - 20;
   SDL_RenderFillRect(main_renderer, &score_bar_rect);
 }

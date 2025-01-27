@@ -6,6 +6,7 @@
 #include <vector>
 #include <data/entry.h>
 extern SDL_Window* main_window;
+extern std::pair<int, int> window_size;
 extern SDL_Renderer* main_renderer;
 extern SDL_Event event;
 extern bool running;

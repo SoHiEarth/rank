@@ -138,7 +138,6 @@ void CreatePromptWindow() {
 }
 
 Entry* PromptNewEntry() {
-  SDL_Log("PromptNewEntry");
   CreatePromptWindow();
   Entry* entry = new Entry();
   std::map<std::string, std::string*> table = {
