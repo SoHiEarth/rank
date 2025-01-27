@@ -152,6 +152,13 @@ Entry* PromptNewEntry() {
         case SDL_QUIT:
           prompt_close_requested = true;
           break;
+        case SDL_WINDOWEVENT:
+          switch (event.window.event) {
+            case SDL_WINDOWEVENT_CLOSE:
+              prompt_close_requested = false;
+              break;
+          }
+          break;
         case SDL_MOUSEMOTION:
           mouse_position = {event.motion.x, event.motion.y};
           break;
