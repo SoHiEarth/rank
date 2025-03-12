@@ -59,4 +59,8 @@ void RenderEntry(Entry* entry, SDL_Rect anchor) {
   score_bar_rect.x = anchor.x + (anchor.w - score_bar_rect.w) / 2;
   score_bar_rect.y = anchor.y + anchor.h - score_bar_rect.h - entry_rect.h - 20;
   SDL_RenderFillRect(main_renderer, &score_bar_rect);
+
+  if (SDL_PointInRect(&mouse_position, &score_bar_rect) && (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_LEFT))) {
+    PromptEntryEditor(entry);
+  }
 }

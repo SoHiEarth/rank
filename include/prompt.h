@@ -2,7 +2,7 @@
 #define PROMPT_H
 
 #include <data/entry.h>
-Entry* PromptNewEntry();
+void PromptEntryEditor(Entry* entry);
 template <typename T>
 void CheckError(T* ptr, std::string message);
 #endif // PROMPT_H

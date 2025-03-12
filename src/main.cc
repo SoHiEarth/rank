@@ -57,6 +57,19 @@ int main() {
     );
     SDL_RenderClear(main_renderer);
 
+    if (!entries.empty()) {
+      for (int i = 0; i < std::min(top_entries_render_count, (int)entries.size()); i++) {
+        entries[i]->name = (entries[i]->name.empty()) ? "名前未設定" : entries[i]->name;
+        SDL_Rect anchor = {
+          50 + (window_size.first - 100)/top_entries_render_count * i,
+          150,
+          (window_size.first - 100)/top_entries_render_count,
+          window_size.second - 50 - 150
+        };
+        RenderEntry(entries[i], anchor);
+      }
+    }
+
     SDL_Surface* add_data_surface = TTF_RenderUTF8_Blended(interface_font, "データを追加", {255, 255, 255, 255});
     CheckError(add_data_surface, "Failed to render text surface");
     SDL_Texture* add_data_texture = SDL_CreateTextureFromSurface(main_renderer, add_data_surface);
@@ -70,22 +83,12 @@ int main() {
       SDL_SetRenderDrawColor(main_renderer, 0, 0, 0, 100);
       SDL_RenderFillRect(main_renderer, &add_data_rect);
       if (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_LEFT)) {
-        entries.push_back(PromptNewEntry());
+        Entry* entry = new Entry();
+        PromptEntryEditor(entry);
+        entries.push_back(entry);
       }
     }
-
-    if (!entries.empty()) {
-      for (int i = 0; i < std::min(top_entries_render_count, (int)entries.size()); i++) {
-        entries[i]->name = (entries[i]->name.empty()) ? "名前未設定" : entries[i]->name;
-        SDL_Rect anchor = {
-          50 + (window_size.first - 100)/top_entries_render_count * i,
-          150,
-          (window_size.first - 100)/top_entries_render_count,
-          window_size.second - 50 - 150
-        };
-        RenderEntry(entries[i], anchor);
-      }
-    }
+    
     SDL_RenderPresent(main_renderer);
   }
   

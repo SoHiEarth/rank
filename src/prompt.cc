@@ -1,3 +1,4 @@
+#include <SDL_keyboard.h>
 #include <SDL_render.h>
 #include <SDL_video.h>
 #include <prompt.h>
@@ -9,6 +10,8 @@
 #include <string>
 #include <algorithm>
 bool prompt_close_requested = false;
+std::string* current_text = nullptr;
+SDL_Rect current_input_rect;
 template <typename T>
 void CheckError(T* ptr, std::string message) {
   if (ptr == nullptr) {
@@ -19,52 +22,8 @@ void CheckError(T* ptr, std::string message) {
 
 void TextInput(std::string* text, SDL_Rect input_rect) {
   SDL_StartTextInput();
-  bool text_input_done = false;
-  while (!text_input_done) {
-    while (SDL_PollEvent(&event)) {
-      switch (event.type) {
-        case SDL_QUIT:
-          text_input_done = true;
-          break;
-        case SDL_TEXTINPUT:
-          if (*text == "~") {
-            *text = "";
-          }
-          *text += event.text.text;
-          break;
-        case SDL_KEYDOWN:
-          if (event.key.keysym.sym == SDLK_BACKSPACE && text->size() > 0) {
-            text->pop_back();
-            if (text->empty()) {
-              *text = "~";
-            }
-          }
-          break;
-        case SDL_MOUSEMOTION:
-          mouse_position = {event.motion.x, event.motion.y};
-          break;
-        case SDL_MOUSEBUTTONDOWN:
-          if (!SDL_PointInRect(&mouse_position, &input_rect)) {
-            text_input_done = true;
-          }
-          break;
-      }
-    }
-    SDL_SetRenderDrawColor(prompt_renderer, 255, 255, 255, 255);
-    SDL_RenderClear(prompt_renderer);
-    SDL_Surface* text_surface = TTF_RenderUTF8_Blended(interface_font, text->c_str(), {0, 0, 0, 255});
-    CheckError(text_surface, "Failed to render text surface");
-    SDL_Texture* text_texture = SDL_CreateTextureFromSurface(prompt_renderer, text_surface);
-    CheckError(text_texture, "Failed to create text texture");
-    SDL_Rect text_rect = {input_rect.x, input_rect.y, text_surface->w, text_surface->h};
-    SDL_SetRenderDrawColor(prompt_renderer, 0, 0, 0, 255);
-    SDL_RenderDrawRect(prompt_renderer, &input_rect);
-    SDL_RenderCopy(prompt_renderer, text_texture, nullptr, &text_rect);
-    SDL_FreeSurface(text_surface);
-    SDL_DestroyTexture(text_texture);
-    SDL_RenderPresent(prompt_renderer);
-  }
-  SDL_StopTextInput();
+  current_text = text;
+  current_input_rect = input_rect;
 }
 
 void RenderTable(SDL_Renderer* renderer, std::string table_title, std::map<std::string, std::string*> table) {
@@ -137,10 +96,9 @@ void CreatePromptWindow() {
   );
 }
 
-Entry* PromptNewEntry() {
+void PromptEntryEditor(Entry* entry) {
   if (prompt_window == nullptr && prompt_renderer == nullptr)
     CreatePromptWindow();
-  Entry* entry = new Entry();
   std::map<std::string, std::string*> table = {
     {"名前", &entry->name},
     {"スコア", &entry->score}
@@ -161,6 +119,33 @@ Entry* PromptNewEntry() {
           break;
         case SDL_MOUSEMOTION:
           mouse_position = {event.motion.x, event.motion.y};
+          break;
+        case SDL_MOUSEBUTTONDOWN:
+          if (current_text != nullptr) {
+            current_text = nullptr;
+            SDL_StopTextInput();
+          }
+        case SDL_TEXTINPUT:
+          if (current_text == nullptr) break;
+          if (*current_text == "~") {
+            *current_text = "";
+          }
+          *current_text += event.text.text;
+          break;
+        case SDL_KEYDOWN:
+          if (event.key.keysym.sym == SDLK_BACKSPACE && current_text->size() > 0) {
+            current_text->pop_back();
+            if (current_text->empty()) {
+              *current_text = "~";
+            }
+          }
+          if (event.key.keysym.sym == SDLK_ESCAPE) {
+            if (current_text != nullptr) {
+              current_text = nullptr;
+              SDL_StopTextInput();
+            }
+            else prompt_close_requested = true;
+          }
           break;
       }
     }
@@ -198,6 +183,4 @@ Entry* PromptNewEntry() {
   SDL_DestroyWindow(prompt_window);
   prompt_renderer = nullptr;
   prompt_window = nullptr;
-
-  return entry;
 }
